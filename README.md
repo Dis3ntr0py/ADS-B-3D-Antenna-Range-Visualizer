@@ -34,7 +34,7 @@ This map shows coverage as volume in 3D space rather than a polygon in 2D space 
 
 A Windows-specific install path is provided for [Dis3ntr0py/Dump1090](https://github.com/Dis3ntr0py/Dump1090). It uses Dump1090's existing Mongoose HTTP server and keeps the range collector separate from the decoder. It does not patch or rebuild Dump1090.
 
-### Install and try it
+### Install
 
 **The Windows installer automates the file-copying and setup steps; it is not an all-in-one launcher.** Run it from a local copy of this visualizer repository. It copies the viewer and collector scripts into the Dump1090 folders, writes the collector configuration, and (unless skipped) downloads a one-time local cache of map tiles. It does **not** start Dump1090 or start the collector for you. Once installation has finished, start the collector separately with **range3d-tools/Start-Range3D.cmd** whenever you want to record coverage. You do not need to modify or rebuild Dump1090.
 
