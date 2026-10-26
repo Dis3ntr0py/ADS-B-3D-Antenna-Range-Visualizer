@@ -81,6 +81,8 @@ def main():
     parser.add_argument("--lon", type=float, default=None)
     parser.add_argument("--base-url", default=None,
                         help="tar1090 base URL to read receiver.json from")
+    parser.add_argument("--out-dir", default=OUT_DIR,
+                        help="output basemap directory (default: viewer/basemap)")
     parser.add_argument("--radius-nm", type=float, default=250.0)
     parser.add_argument("--zoom", type=int, default=8)
     parser.add_argument("--template", default=DEFAULT_TEMPLATE)
@@ -120,11 +122,11 @@ def main():
               % args.max_tiles, file=sys.stderr)
         return 1
 
-    os.makedirs(OUT_DIR, exist_ok=True)
+    out_dir = os.path.abspath(args.out_dir)\n    os.makedirs(out_dir, exist_ok=True)
     fetched = skipped = failed = 0
     for x in range(x0, x1 + 1):
         for y in range(y0, y1 + 1):
-            path = os.path.join(OUT_DIR, str(args.zoom), str(x), "%d.png" % y)
+            path = os.path.join(out_dir, str(args.zoom), str(x), "%d.png" % y)
             if os.path.exists(path) and not args.force:
                 skipped += 1
                 continue
@@ -151,11 +153,11 @@ def main():
         "attribution": args.attribution,
         "fetched": int(time.time()),
     }
-    with open(os.path.join(OUT_DIR, "meta.json"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
 
     size = sum(os.path.getsize(os.path.join(dirpath, name))
-               for dirpath, _, names in os.walk(OUT_DIR) for name in names)
+               for dirpath, _, names in os.walk(out_dir) for name in names)
     print("fetched %d, already present %d, failed %d, %.1f MB on disk"
           % (fetched, skipped, failed, size / 1e6))
     return 0
