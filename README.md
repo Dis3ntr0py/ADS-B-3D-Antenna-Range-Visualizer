@@ -30,6 +30,35 @@ This map shows coverage as volume in 3D space rather than a polygon in 2D space 
 **Slice** - A vertical cross-section along a bearing you pick. It splits the picture into three regions: coverage you have confirmed, coverage that is geometrically possible but you have not achieved, and everything below the horizon that should be impossible. The gap in the middle is your headroom.
 
 
+## Windows: gvanem Dump1090
+
+A Windows-specific install path is provided for [Dis3ntr0py/Dump1090](https://github.com/Dis3ntr0py/Dump1090). It uses Dump1090's existing Mongoose HTTP server and keeps the range collector separate from the decoder. It does not patch or rebuild Dump1090.
+
+### Install
+
+1. Configure **homepos** in your active **dump1090.cfg** to the actual receiver latitude and longitude. Do not leave a sample coordinate in place. **/data/receiver.json** returns **0,0** when Dump1090 has no configured home position, and range calculations need a real receiver position.
+2. Start Dump1090 with its HTTP server enabled. The repository's usual example is **dump1090 --interactive --net**, served at **http://localhost:8080** unless you changed **net-http-port**.
+3. From this visualizer repository, run PowerShell (the execution-policy flag permits the local installer script to run):
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/Install-Windows.ps1 -Dump1090Root "C:/dev/Dump1090"
+   ```
+
+   Replace **C:/dev/Dump1090** with your Dump1090 checkout. If its active web root is not **web_root-Tar1090** under that folder, pass **-WebRoot "path-to-web-root"**. Add **-Port 8080** if you need to specify the HTTP port explicitly. Use **-SkipBasemap** to skip the optional one-time OpenStreetMap tile cache.
+4. Run **range3d-tools/Start-Range3D.cmd** from the Dump1090 folder, then open [http://localhost:8080/range3d/](http://localhost:8080/range3d/). Leave the collector console open while gathering coverage; Ctrl+C saves state and stops collection.
+
+The installer copies the viewer to **web_root-Tar1090/range3d/**, puts collector tools in **range3d-tools/**, and creates **range3d/state/envelope.json** on first collector start. It does not overwrite an existing envelope when reinstalling, and it does not change **dump1090.cfg**, the main web page, or Dump1090 source code. Coverage persists in that JSON file; keep it when updating the viewer.
+
+### Windows JSON compatibility notes
+
+The Windows build emits **lat**, **lon**, **nucp**, **seen_pos**, and **altitude** (in feet in the extended **/data/aircraft.json** response), rather than all the readsb-specific fields the Linux collector expected. The Windows-compatible collector calculates range and bearing from **/data/receiver.json** and accepts legacy aircraft when NUCp is at least 7. NUCp is not the same field as NIC, and this fallback is necessarily less specific than readsb's NIC/RC filtering. Non-ICAO addresses marked with a leading **~** are excluded. The browser overlay uses the same receiver-relative calculations for live aircraft.
+
+Windows Dump1090 does not expose a geometric-altitude field in this JSON path, so the collector uses its available altitude field. This affects how accurately the altitude bands represent geometric height; it does not change Dump1090's own decoding.
+
+## Original Linux/tar1090 install
+
+The existing Linux installer below remains unchanged. It uses systemd and Lighttpd and is for the original readsb/tar1090 setup, not for Windows.
+
 ## Requirements
 
 - A working readsb or dump1090 receiver with tar1090 on top
