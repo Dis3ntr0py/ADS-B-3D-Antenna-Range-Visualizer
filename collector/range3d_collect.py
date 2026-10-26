@@ -374,9 +374,10 @@ def cmd_collect(args):
         sys.stdout.flush()
 
     def log_status(message):
-        # Finish the active status line before writing a permanent log entry.
-        sys.stdout.write("\n")
-        print(message, flush=True)
+        # Replace the live status with the permanent log message instead of
+        # leaving a duplicate "waiting" line in the console history.
+        sys.stdout.write("\r" + message.ljust(len(status_message)) + "\n")
+        sys.stdout.flush()
         show_status()
 
     show_status()
@@ -436,8 +437,9 @@ def cmd_collect(args):
         if elapsed < args.interval:
             time.sleep(args.interval - elapsed)
 
-    # Move off the active status line before the final save message.
-    sys.stdout.write("\n")
+    # Replace the active status with a final message before saving on shutdown.
+    sys.stdout.write("\r" + "Stopping and saving coverage...".ljust(len(status_message)) + "\n")
+    sys.stdout.flush()
     env.save(args.state)
     print("stopped: %d cells, %d samples" % (len(env.cells), env.samples), flush=True)
     return 0
