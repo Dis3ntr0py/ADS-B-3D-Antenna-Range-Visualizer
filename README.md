@@ -45,7 +45,7 @@ In the instructions below, the **Dump1090 folder** (sometimes called your local 
 3. Open PowerShell in the **visualizer repository folder** and run the installer. This single command performs the install/setup operations described above (the execution-policy flag permits this local script to run):
 
    ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/Install-Windows.ps1 -Dump1090Root "C:/dev/Dump1090"
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/3dRange-Install-Win.ps1 -Dump1090Root "C:/dev/Dump1090"
    ```
 
    Replace **C:/dev/Dump1090** with the actual local Dump1090 folder on your PC. If its active web root is not **web_root-Tar1090** inside that folder, pass **-WebRoot "path-to-web-root"**. Add **-Port 8080** if you need to specify the HTTP port explicitly. Pass **-AntennaAltitudeFt 120** (replace 120 with your antenna altitude in feet above sea level) if you want the theoretical horizon overlay to use that elevation. The installer needs a filesystem web root containing **index.html**; the packed **web-pages.dll** web root cannot serve the add-on directly.
@@ -53,7 +53,7 @@ In the instructions below, the **Dump1090 folder** (sometimes called your local 
    **Optional arguments go at the end of the same PowerShell command**, after the **-Dump1090Root "..."** argument; you do not need to edit the installer script. For example, to skip the optional map download:
 
    ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/Install-Windows.ps1 -Dump1090Root "C:/dev/Dump1090" -SkipBasemap
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/3dRange-Install-Win.ps1 -Dump1090Root "C:/dev/Dump1090" -SkipBasemap
    ```
 
    Other supported switches are **-Port 8081**, **-WebRoot "C:/path/to/your/web-root"**, and **-AntennaAltitudeFt 120**. Use your actual HTTP port and paths. You can combine them in the same command when needed.
