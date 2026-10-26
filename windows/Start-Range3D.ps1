@@ -4,10 +4,20 @@ $ConfigPath = Join-Path $PSScriptRoot "range3d-config.json"
 $Collector = Join-Path $PSScriptRoot "range3d_collect.py"
 
 if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
-  throw "Missing $ConfigPath. Run windows\Install-Windows.ps1 from the visualizer repository first."
+  Write-Host ""
+  Write-Host "ERROR: Range3D configuration was not found next to this launcher." -ForegroundColor Red
+  Write-Host "You may have started the source copy from the visualizer repository's 'windows' folder."
+  Write-Host "Run the installed launcher from the Dump1090 folder:"
+  Write-Host "  range3d-tools\Start-Range3D.cmd"
+  Write-Host "The installer places range3d-config.json and range3d_collect.py beside that installed launcher."
+  Write-Host "If the installed launcher is missing, run windows\Install-Windows.ps1 from the visualizer repository with -Dump1090Root <path-to-Dump1090>."
+  exit 2
 }
 if (-not (Test-Path -LiteralPath $Collector -PathType Leaf)) {
-  throw "Missing collector: $Collector"
+  Write-Host ""
+  Write-Host "ERROR: range3d_collect.py is missing next to this launcher." -ForegroundColor Red
+  Write-Host "Run range3d-tools\Start-Range3D.cmd from the Dump1090 folder. If the installed files are missing, rerun the visualizer installer."
+  exit 2
 }
 $Config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 
