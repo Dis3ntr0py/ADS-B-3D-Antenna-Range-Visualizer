@@ -42,11 +42,12 @@ $StateFile = Join-Path $StateDir "envelope.json"
 $BaseUrl = "http://localhost:$Port"
 New-Item -ItemType Directory -Force -Path $ViewerDest, $StateDir, $ToolsDir | Out-Null
 
+# Launcher templates live in windows\launchers; installed copies go beside config and collector in range3d-tools.
 # Only the separate range3d folder is installed; Dump1090 source, config and root page are not changed.
 Copy-Item -Path (Join-Path $SourceViewer "*") -Destination $ViewerDest -Recurse -Force
 Copy-Item -LiteralPath $SourceCollector -Destination (Join-Path $ToolsDir "range3d_collect.py") -Force
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Start-Range3D.ps1") -Destination (Join-Path $ToolsDir "Start-Range3D.ps1") -Force
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Start-Range3D.cmd") -Destination (Join-Path $ToolsDir "Start-Range3D.cmd") -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "launchers\Start-Range3D.ps1") -Destination (Join-Path $ToolsDir "Start-Range3D.ps1") -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "launchers\Start-Range3D.cmd") -Destination (Join-Path $ToolsDir "Start-Range3D.cmd") -Force
 
 # Flag this installed copy so the browser uses Dump1090's /data routes, not tar1090 routes.
 $IndexFile = Join-Path $ViewerDest "index.html"
