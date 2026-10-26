@@ -362,13 +362,32 @@ def cmd_collect(args):
     records = 0
     deadline = time.time() + args.duration if args.duration else None
 
+    # Keep a visible status on the active console line between log messages.
+    # This reassures users the collector is running before its first periodic save.
+    status_message = (
+        "Collecting aircraft data; waiting for next save (every %ss)..."
+        % args.save_every
+    )
+
+    def show_status():
+        sys.stdout.write("\r" + status_message)
+        sys.stdout.flush()
+
+    def log_status(message):
+        # Finish the active status line before writing a permanent log entry.
+        sys.stdout.write("\n")
+        print(message, flush=True)
+        show_status()
+
+    show_status()
+
     while not stopping["now"]:
         cycle_start = time.time()
         try:
             snapshot = fetch_json(url)
             backoff = 1.0
         except (urllib.error.URLError, OSError, ValueError) as exc:
-            print("fetch failed: %s (retry in %.0fs)" % (exc, backoff), flush=True)
+            log_status("fetch failed: %s (retry in %.0fs)" % (exc, backoff))
             time.sleep(backoff)
             backoff = min(backoff * 2, 30.0)
             continue
@@ -386,7 +405,7 @@ def cmd_collect(args):
                         and -90 <= rx_lat <= 90 and -180 <= rx_lon <= 180
                         and not (rx_lat == 0 and rx_lon == 0)):
                     env.rx["lat"], env.rx["lon"] = rx_lat, rx_lon
-                    print("receiver position %s, %s" % (rx_lat, rx_lon), flush=True)
+                    log_status("receiver position %s, %s" % (rx_lat, rx_lon))
             except (urllib.error.URLError, OSError, ValueError):
                 pass
 
@@ -407,8 +426,8 @@ def cmd_collect(args):
         if time.time() - last_save >= args.save_every:
             env.save(args.state)
             last_save = time.time()
-            print("saved: %d cells, %d samples, %d records set"
-                  % (len(env.cells), env.samples, records), flush=True)
+            log_status("saved: %d cells, %d samples, %d records set"
+                       % (len(env.cells), env.samples, records))
 
         if deadline and time.time() >= deadline:
             break
@@ -417,6 +436,8 @@ def cmd_collect(args):
         if elapsed < args.interval:
             time.sleep(args.interval - elapsed)
 
+    # Move off the active status line before the final save message.
+    sys.stdout.write("\n")
     env.save(args.state)
     print("stopped: %d cells, %d samples" % (len(env.cells), env.samples), flush=True)
     return 0
