@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
   Write-Host "Run the installed launcher from the Dump1090 folder:"
   Write-Host "  range3d-tools\Start-Range3D.cmd"
   Write-Host "The installer places range3d-config.json and range3d_collect.py beside that installed launcher."
-  Write-Host "If the installed launcher is missing, run windows\Install-Windows.ps1 from the visualizer repository with -Dump1090Root <path-to-Dump1090>."
+  Write-Host "If the installed launcher is missing, run windows\3dRange-Install-Win.ps1 from the visualizer repository with -Dump1090Root <path-to-Dump1090>."
   exit 2
 }
 if (-not (Test-Path -LiteralPath $Collector -PathType Leaf)) {
