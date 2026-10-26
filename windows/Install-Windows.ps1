@@ -31,6 +31,7 @@ if ([string]::IsNullOrWhiteSpace($WebRoot)) {
   $WebRoot = Join-Path $Dump1090Root $WebRoot
 }
 if (-not (Test-Path -LiteralPath $WebRoot -PathType Container)) { throw "Web root missing: $WebRoot. Supply -WebRoot if needed." }
+if (-not (Test-Path -LiteralPath (Join-Path $WebRoot "index.html") -PathType Leaf)) { throw "No index.html in $WebRoot. Use -WebRoot to point at Dump1090\x27s active filesystem web root; packed web-pages.dll roots cannot serve this add-on." }
 $WebRoot = (Resolve-Path -LiteralPath $WebRoot).Path
 
 $Python = Resolve-Python
