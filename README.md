@@ -45,7 +45,7 @@ A Windows-specific install path is provided for [Dis3ntr0py/Dump1090](https://gi
    ```
 
    Replace **C:/dev/Dump1090** with your Dump1090 checkout. If its active web root is not **web_root-Tar1090** under that folder, pass **-WebRoot "path-to-web-root"**. Add **-Port 8080** if you need to specify the HTTP port explicitly. Use **-SkipBasemap** to skip the optional one-time OpenStreetMap tile cache.
-4. Run **range3d-tools/Start-Range3D.cmd** from the Dump1090 folder, then open [http://localhost:8080/range3d/](http://localhost:8080/range3d/). Leave the collector console open while gathering coverage; Ctrl+C saves state and stops collection.
+4. Run **range3d-tools/Start-Range3D.cmd** from the Dump1090 folder, then open [http://localhost:8080/range3d/index.html](http://localhost:8080/range3d/index.html). Leave the collector console open while gathering coverage; Ctrl+C saves state and stops collection.
 
 The installer copies the viewer to **web_root-Tar1090/range3d/**, puts collector tools in **range3d-tools/**, and creates **range3d/state/envelope.json** on first collector start. It does not overwrite an existing envelope when reinstalling, and it does not change **dump1090.cfg**, the main web page, or Dump1090 source code. Coverage persists in that JSON file; keep it when updating the viewer.
 
