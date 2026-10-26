@@ -25,7 +25,7 @@ const AIRCRAFT_URL = params.get('aircraft') || (DUMP1090_WINDOWS
 const RECEIVER_URL = params.get('receiver') || (DUMP1090_WINDOWS
   ? '../data/receiver.json' : '../tar1090/data/receiver.json');
 // Where the "return to 2D" link goes.
-const TAR1090_URL = params.get('tar1090') || (DUMP1090_WINDOWS ? '../' : '../tar1090/');
+const TAR1090_URL = params.get('tar1090') || (DUMP1090_WINDOWS ? '../index.html' : '../tar1090/');
 const ENVELOPE_REFRESH_MS = 60000;
 const AIRCRAFT_REFRESH_MS = 1000;
 const CONTOUR_ALTITUDES = [2000, 5000, 10000, 20000, 30000, 40000];
