@@ -48,7 +48,15 @@ In the instructions below, the **Dump1090 folder** (sometimes called your local 
    powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/Install-Windows.ps1 -Dump1090Root "C:/dev/Dump1090"
    ```
 
-   Replace **C:/dev/Dump1090** with the actual local Dump1090 folder on your PC. If its active web root is not **web_root-Tar1090** inside that folder, pass **-WebRoot "path-to-web-root"**. Add **-Port 8080** if you need to specify the HTTP port explicitly. Use **-SkipBasemap** to skip the optional one-time OpenStreetMap tile download. Pass **-AntennaAltitudeFt 120** (replace 120 with your antenna altitude in feet above sea level) if you want the theoretical horizon overlay to use that elevation. The installer needs a filesystem web root containing **index.html**; the packed **web-pages.dll** web root cannot serve the add-on directly.
+   Replace **C:/dev/Dump1090** with the actual local Dump1090 folder on your PC. If its active web root is not **web_root-Tar1090** inside that folder, pass **-WebRoot "path-to-web-root"**. Add **-Port 8080** if you need to specify the HTTP port explicitly. Pass **-AntennaAltitudeFt 120** (replace 120 with your antenna altitude in feet above sea level) if you want the theoretical horizon overlay to use that elevation. The installer needs a filesystem web root containing **index.html**; the packed **web-pages.dll** web root cannot serve the add-on directly.
+
+   **Optional arguments go at the end of the same PowerShell command**, after the **-Dump1090Root "..."** argument; you do not need to edit the installer script. For example, to skip the optional map download:
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./windows/Install-Windows.ps1 -Dump1090Root "C:/dev/Dump1090" -SkipBasemap
+   ```
+
+   Other supported switches are **-Port 8081**, **-WebRoot "C:/path/to/your/web-root"**, and **-AntennaAltitudeFt 120**. Use your actual HTTP port and paths. You can combine them in the same command when needed.
 4. With Dump1090 running and its HTTP server enabled, run **range3d-tools/Start-Range3D.cmd** from the Dump1090 folder. This starts the collector in a separate console; leave that console open while gathering coverage. Press **Ctrl+C** in that console to save state and stop collection. Then open [http://localhost:8080/range3d/index.html](http://localhost:8080/range3d/index.html) in a browser. You can reopen the viewer later without running the collector, but live aircraft markers require Dump1090 to be running.
 
 The installer copies the viewer to **web_root-Tar1090/range3d/**, puts collector tools in **range3d-tools/**, and creates **range3d/state/envelope.json** on first collector start. It does not overwrite an existing envelope when reinstalling, and it does not change **dump1090.cfg**, the main web page, or Dump1090 source code. Coverage persists in that JSON file; keep it when updating the viewer.
