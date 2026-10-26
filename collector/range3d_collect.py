@@ -224,7 +224,8 @@ def accept(ac, now, last_fix, rx):
         return None
 
     legacy_dump1090 = (
-        "type" not in ac and "nucp" in ac and "altitude" in ac
+        "type" not in ac and "nucp" in ac
+        and ("altitude" in ac or "alt_baro" in ac)
     )
     if not legacy_dump1090 and ac.get("type") not in ACCEPTED_TYPES:
         return None
@@ -356,6 +357,7 @@ def cmd_collect(args):
 
     url = base + "/data/aircraft.json"
     last_save = time.time()
+    next_receiver_retry = 0.0
     backoff = 1.0
     records = 0
     deadline = time.time() + args.duration if args.duration else None
@@ -372,6 +374,22 @@ def cmd_collect(args):
             continue
 
         now = snapshot.get("now", time.time())
+
+        # If Dump1090 was still starting when the collector launched, retry its
+        # receiver endpoint until a real homepos becomes available.
+        if env.rx.get("lat") is None and time.time() >= next_receiver_retry:
+            next_receiver_retry = time.time() + 15.0
+            try:
+                receiver = fetch_json(base + "/data/receiver.json")
+                rx_lat, rx_lon = receiver.get("lat"), receiver.get("lon")
+                if (_is_number(rx_lat) and _is_number(rx_lon)
+                        and -90 <= rx_lat <= 90 and -180 <= rx_lon <= 180
+                        and not (rx_lat == 0 and rx_lon == 0)):
+                    env.rx["lat"], env.rx["lon"] = rx_lat, rx_lon
+                    print("receiver position %s, %s" % (rx_lat, rx_lon), flush=True)
+            except (urllib.error.URLError, OSError, ValueError):
+                pass
+
         for ac in snapshot.get("aircraft", ()):
             accepted = accept(ac, now, last_fix, env.rx)
             if accepted is None:
