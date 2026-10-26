@@ -122,7 +122,8 @@ def main():
               % args.max_tiles, file=sys.stderr)
         return 1
 
-    out_dir = os.path.abspath(args.out_dir)\n    os.makedirs(out_dir, exist_ok=True)
+    out_dir = os.path.abspath(args.out_dir)
+    os.makedirs(out_dir, exist_ok=True)
     fetched = skipped = failed = 0
     for x in range(x0, x1 + 1):
         for y in range(y0, y1 + 1):
