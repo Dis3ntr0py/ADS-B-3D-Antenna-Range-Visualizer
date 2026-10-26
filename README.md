@@ -59,14 +59,14 @@ Windows Dump1090 does not expose a geometric-altitude field in this JSON path, s
 
 The existing Linux installer below remains unchanged. It uses systemd and Lighttpd and is for the original readsb/tar1090 setup, not for Windows.
 
-## Requirements
+### Requirements
 
 - A working readsb or dump1090 receiver with tar1090 on top
 - A configured receiver position
 - systemd, lighttpd, and python3
 - An internet connection once to download map tiles
 
-## Install
+### Install
 
 ```bash
 git clone https://github.com/Charan-N15/ADS-B-3D-Antenna-Range-Visualizer.git
@@ -78,7 +78,7 @@ That reads your receiver position from tar1090, installs a collector service, do
 
 Then open `http://your-pi/range3d/`, or click the `3D` button in tar1090.
 
-## Configuration
+### Configuration
 
 Settings live in `/etc/default/range3d`. The one worth setting is your antenna's height above sea level:
 
@@ -93,7 +93,7 @@ sudo systemctl restart range3d-collector
 ```
 
 
-## Updating
+### Updating
 
 ```bash
 git pull
@@ -102,7 +102,7 @@ sudo ./install.sh
 
 Collected data will not get rewritten if you run `install.sh` again
 
-## Uninstall
+### Uninstall
 
 ```bash
 sudo ./uninstall.sh --purge
