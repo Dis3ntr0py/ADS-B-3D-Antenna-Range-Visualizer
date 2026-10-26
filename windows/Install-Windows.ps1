@@ -96,8 +96,9 @@ if (-not $SkipBasemap -and (Test-Path -LiteralPath $SourceBasemapTool)) {
 }
 Write-Host ""
 Write-Host "Next:"
-Write-Host "  1. Start Dump1090 with the HTTP server enabled (commonly --interactive --net)."
-Write-Host "  2. Verify homepos in dump1090.cfg matches your receiver; do not use a sample coordinate."
-Write-Host "  3. Run: $ToolsDir\Start-Range3D.cmd"
+Write-Host "  1. Keep Dump1090 running with its HTTP server enabled (usually --interactive --net)."
+Write-Host "  2. Confirm homepos in the active dump1090.cfg is your receiver's actual latitude/longitude."
+Write-Host "  3. From the Dump1090 folder, run: range3d-tools\Start-Range3D.cmd"
 Write-Host "  4. Open: $BaseUrl/range3d/index.html"
-Write-Host "Keep the collector console open while recording. Reinstalling preserves envelope.json."
+Write-Host "The collector runs separately; leave its console open while recording. Ctrl+C saves state and stops collection."
+Write-Host "Reinstalling preserves envelope.json."
