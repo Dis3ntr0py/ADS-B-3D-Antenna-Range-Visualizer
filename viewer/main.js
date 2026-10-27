@@ -481,6 +481,16 @@ function note(text) {
 function wireUi() {
   el('backTo2d').href = TAR1090_URL;
 
+  const panelToggle = el('panelToggle');
+  panelToggle.addEventListener('click', () => {
+    const collapsed = document.body.classList.toggle('panel-collapsed');
+    const label = collapsed ? 'Open controls' : 'Close controls';
+    panelToggle.setAttribute('aria-expanded', String(!collapsed));
+    panelToggle.setAttribute('aria-label', label);
+    panelToggle.title = label;
+    resize();
+  });
+
   for (const button of document.querySelectorAll('button.view')) {
     button.addEventListener('click', () => setView(button.dataset.view));
   }
