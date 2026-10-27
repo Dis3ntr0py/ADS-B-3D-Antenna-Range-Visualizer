@@ -23,8 +23,10 @@ $SourceRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $SourceViewer = Join-Path $SourceRoot "viewer"
 $SourceCollector = Join-Path $SourceRoot "collector\range3d_collect.py"
 $SourceBasemapTool = Join-Path $SourceRoot "tools\fetch-basemap.py"
+$SourceLauncherIcon = Join-Path $PSScriptRoot "launchers\Range3D.ico"
 if (-not (Test-Path -LiteralPath $SourceViewer -PathType Container)) { throw "Viewer directory missing: $SourceViewer" }
 if (-not (Test-Path -LiteralPath $SourceCollector -PathType Leaf)) { throw "Collector missing: $SourceCollector" }
+if (-not (Test-Path -LiteralPath $SourceLauncherIcon -PathType Leaf)) { throw "Range3D launcher icon missing: $SourceLauncherIcon" }
 if ([string]::IsNullOrWhiteSpace($WebRoot)) {
   $WebRoot = Join-Path $Dump1090Root "web_root-Tar1090"
 } elseif (-not [System.IO.Path]::IsPathRooted($WebRoot)) {
@@ -48,6 +50,7 @@ Copy-Item -Path (Join-Path $SourceViewer "*") -Destination $ViewerDest -Recurse 
 Copy-Item -LiteralPath $SourceCollector -Destination (Join-Path $ToolsDir "range3d_collect.py") -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "launchers\Start-Range3D.ps1") -Destination (Join-Path $ToolsDir "Start-Range3D.ps1") -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "launchers\Start-Range3D.cmd") -Destination (Join-Path $ToolsDir "Start-Range3D.cmd") -Force
+Copy-Item -LiteralPath $SourceLauncherIcon -Destination (Join-Path $ToolsDir "Range3D.ico") -Force
 
 # Flag this installed copy so the browser uses Dump1090's /data routes, not tar1090 routes.
 $IndexFile = Join-Path $ViewerDest "index.html"
