@@ -1,5 +1,7 @@
 @echo off
 setlocal
+title Range3D
+
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0Start-Range3D.ps1" %*
 if errorlevel 1 (
   echo.
