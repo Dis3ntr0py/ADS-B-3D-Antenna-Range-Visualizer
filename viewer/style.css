@@ -52,6 +52,26 @@ html, body {
   background: var(--panel);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-bright) var(--panel);
+}
+
+#panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#panel::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+
+#panel::-webkit-scrollbar-thumb {
+  background: var(--line-bright);
+  border: 1px solid var(--panel);
+  border-radius: 999px;
+}
+
+#panel::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-faint);
 }
 
 .group { padding: 6px 0; border-bottom: 1px solid var(--line); }
