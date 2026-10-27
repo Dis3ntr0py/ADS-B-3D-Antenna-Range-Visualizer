@@ -15,13 +15,17 @@ import {
   loadSettings, saveSettings, clearSettings, mergeSettings,
 } from './settings.js';
 import { SliceView } from './slice.js';
+import { bearingDeg, haversineNm } from './geo.js';
 
 const params = new URLSearchParams(location.search);
+const DUMP1090_WINDOWS = params.get('dump1090') === '1';
 const ENVELOPE_URL = params.get('envelope') || 'state/envelope.json';
-const AIRCRAFT_URL = params.get('aircraft') || '../tar1090/data/aircraft.json';
-// Where the "return to 2D" link goes. Relative by default, which is correct for the
-// standard install where the viewer sits beside tar1090 on the same host.
-const TAR1090_URL = params.get('tar1090') || '../tar1090/';
+const AIRCRAFT_URL = params.get('aircraft') || (DUMP1090_WINDOWS
+  ? '../data/aircraft.json' : '../tar1090/data/aircraft.json');
+const RECEIVER_URL = params.get('receiver') || (DUMP1090_WINDOWS
+  ? '../data/receiver.json' : '../tar1090/data/receiver.json');
+// Where the "return to 2D" link goes.
+const TAR1090_URL = params.get('tar1090') || (DUMP1090_WINDOWS ? '../index.html' : '../tar1090/');
 const ENVELOPE_REFRESH_MS = 60000;
 const AIRCRAFT_REFRESH_MS = 1000;
 const CONTOUR_ALTITUDES = [2000, 5000, 10000, 20000, 30000, 40000];
@@ -208,21 +212,43 @@ async function refreshEnvelope(first) {
 
 async function refreshAircraft() {
   try {
-    const resp = await fetch(AIRCRAFT_URL, { cache: 'no-store' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const snapshot = await resp.json();
+    const [aircraftResp, receiverResp] = await Promise.all([
+      fetch(AIRCRAFT_URL, { cache: 'no-store' }),
+      fetch(RECEIVER_URL, { cache: 'no-store' }),
+    ]);
+    if (!aircraftResp.ok) throw new Error(`aircraft HTTP ${aircraftResp.status}`);
+    if (!receiverResp.ok) throw new Error(`receiver HTTP ${receiverResp.status}`);
+    const snapshot = await aircraftResp.json();
+    const receiver = await receiverResp.json();
+    const rxLat = receiver.lat;
+    const rxLon = receiver.lon;
+    const hasRx = typeof rxLat === 'number' && typeof rxLon === 'number'
+      && Number.isFinite(rxLat) && Number.isFinite(rxLon)
+      && !(rxLat === 0 && rxLon === 0);
     const out = [];
     for (const ac of snapshot.aircraft || []) {
-      if (ac.lat === undefined || ac.r_dst === undefined || ac.r_dir === undefined) {
-        continue;
+      if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') continue;
+
+      // readsb uses alt_geom/alt_baro; Windows Dump1090 publishes altitude.
+      let alt = [ac.alt_geom, ac.alt_baro, ac.altitude]
+        .find((value) => typeof value === 'number' && Number.isFinite(value));
+      if (alt === undefined || alt < 0 || alt > 52000) continue;
+
+      let rangeNm = ac.r_dst;
+      let az = ac.r_dir;
+      if (typeof rangeNm !== 'number' || typeof az !== 'number') {
+        if (!hasRx) continue;
+        rangeNm = haversineNm(rxLat, rxLon, ac.lat, ac.lon);
+        az = bearingDeg(rxLat, rxLon, ac.lat, ac.lon);
       }
-      let alt = typeof ac.alt_geom === 'number' ? ac.alt_geom : ac.alt_baro;
-      if (typeof alt !== 'number') continue;
+      if (!Number.isFinite(rangeNm) || rangeNm <= 0 || rangeNm > 350
+          || !Number.isFinite(az)) continue;
+
       out.push({
         hex: ac.hex,
         flight: (ac.flight || '').trim(),
-        az: ac.r_dir,
-        rangeNm: ac.r_dst,
+        az,
+        rangeNm,
         altFt: alt,
       });
     }

@@ -33,6 +33,9 @@ ACCEPTED_TYPES = ("adsb_icao", "adsb_icao_nt", "adsb_other")
 MAX_RANGE_NM = 350.0
 MAX_ALT_FT = 52000
 MIN_NIC = 7
+# Dump1090's JSON exposes NUCp but not NIC/RC. This is a conservative fallback
+# threshold, not a claim that NUCp is equivalent to NIC.
+MIN_NUCP = 7
 MAX_RC_M = 1852
 
 
@@ -202,33 +205,72 @@ class Envelope:
         return added
 
 
+def _is_number(value):
+    """True for finite JSON numbers, but not booleans."""
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value))
+
+
 def accept(ac, now, last_fix, rx):
     """Filter and normalize one aircraft entry.
 
-    Returns (az_bin, band, range_nm, fix_time, record) or None. See DESIGN.md §2.4 —
-    the point of each rejection is that an all-time maximum must not be set by an
-    estimate or a bad decode.
+    The default readsb/tar1090 schema supplies type/NIC/RC and range/bearing.
+    gvanem's Windows Dump1090 schema instead supplies altitude and NUCp; its
+    range/bearing are computed from receiver.json. NUCp is only a conservative
+    fallback confidence filter here, not an alias for NIC.
     """
-    if ac.get("type") not in ACCEPTED_TYPES:
+    hexid = ac.get("hex")
+    if not isinstance(hexid, str):
+        return None
+
+    legacy_dump1090 = (
+        "type" not in ac and "nucp" in ac
+        and ("altitude" in ac or "alt_baro" in ac)
+    )
+    if not legacy_dump1090 and ac.get("type") not in ACCEPTED_TYPES:
+        return None
+
+    # This Dump1090 serializes non-ICAO addresses with a leading '~'. Do not let
+    # those records enter the ICAO ADS-B coverage envelope.
+    if legacy_dump1090 and (
+        hexid.startswith("~") or ac.get("mlat") or ac.get("tisb")
+    ):
         return None
 
     lat, lon = ac.get("lat"), ac.get("lon")
-    if lat is None or lon is None:
+    if not _is_number(lat) or not _is_number(lon):
+        return None
+    if not -90 <= lat <= 90 or not -180 <= lon <= 180:
         return None
 
     nic = ac.get("nic")
-    if nic is None or nic < MIN_NIC:
-        return None
-    rc = ac.get("rc")
-    if rc is not None and rc > MAX_RC_M:
+    nucp = ac.get("nucp")
+    if _is_number(nic):
+        if nic < MIN_NIC:
+            return None
+    elif legacy_dump1090:
+        if not _is_number(nucp) or nucp < MIN_NUCP:
+            return None
+    else:
         return None
 
-    alt, src = ac.get("alt_geom"), "geom"
-    if not isinstance(alt, (int, float)):
-        alt, src = ac.get("alt_baro"), "baro"
-    if not isinstance(alt, (int, float)):
-        return None
-    if alt < 0 or alt > MAX_ALT_FT:
+    rc = ac.get("rc")
+    if rc is not None:
+        if not _is_number(rc) or rc > MAX_RC_M:
+            return None
+
+    # readsb uses alt_geom / alt_baro; Windows Dump1090 emits "altitude".
+    # "ground" and other strings are deliberately not converted to zero.
+    alt = None
+    src = None
+    for field, source in (("alt_geom", "geom"),
+                          ("alt_baro", "baro"),
+                          ("altitude", "baro")):
+        candidate = ac.get(field)
+        if _is_number(candidate):
+            alt, src = candidate, source
+            break
+    if alt is None or alt < 0 or alt > MAX_ALT_FT:
         return None
 
     band = band_of(alt)
@@ -236,52 +278,67 @@ def accept(ac, now, last_fix, rx):
         return None
 
     seen_pos = ac.get("seen_pos")
-    if seen_pos is None:
+    if not _is_number(now) or not _is_number(seen_pos) or seen_pos < 0:
         return None
     fix_t = now - seen_pos
 
-    hexid = ac.get("hex")
-    if hexid is None:
-        return None
     previous = last_fix.get(hexid)
     if previous is not None and fix_t <= previous + 1e-3:
         return None
 
-    # readsb computes these against its configured receiver position whenever it has
-    # one; they agree with our own geodesy and save the trig.
+    # readsb may supply r_dst/r_dir; Windows Dump1090 does not. Calculate both
+    # from the configured receiver position when either field is absent.
     range_nm = ac.get("r_dst")
     bearing = ac.get("r_dir")
-    if range_nm is None or bearing is None:
-        if rx.get("lat") is None:
+    if not _is_number(range_nm) or not _is_number(bearing):
+        rx_lat, rx_lon = rx.get("lat"), rx.get("lon")
+        if not _is_number(rx_lat) or not _is_number(rx_lon):
             return None
-        range_nm = haversine_nm(rx["lat"], rx["lon"], lat, lon)
-        bearing = initial_bearing_deg(rx["lat"], rx["lon"], lat, lon)
-    if range_nm <= 0 or range_nm > MAX_RANGE_NM:
+        range_nm = haversine_nm(rx_lat, rx_lon, lat, lon)
+        bearing = initial_bearing_deg(rx_lat, rx_lon, lat, lon)
+
+    if (not _is_number(range_nm) or not _is_number(bearing)
+            or range_nm <= 0 or range_nm > MAX_RANGE_NM):
         return None
 
     az_bin = int(math.floor(bearing)) % 360
     rec = {"hex": hexid, "t": int(fix_t), "lat": round(lat, 6),
            "lon": round(lon, 6), "alt": int(alt), "src": src}
-    if isinstance(ac.get("rssi"), (int, float)):
+    if _is_number(ac.get("rssi")):
         rec["rssi"] = ac["rssi"]
-    rec["nic"] = nic
-    if ac.get("flight"):
+    if _is_number(nic):
+        rec["nic"] = nic
+    elif legacy_dump1090 and _is_number(nucp):
+        rec["nucp"] = nucp
+    if isinstance(ac.get("flight"), str) and ac["flight"].strip():
         rec["flight"] = ac["flight"].strip()
     return az_bin, band, range_nm, int(fix_t), rec
-
 
 def cmd_collect(args):
     base = args.base_url.rstrip("/")
     rx_lat = rx_lon = None
     try:
         receiver = fetch_json(base + "/data/receiver.json")
-        rx_lat, rx_lon = receiver.get("lat"), receiver.get("lon")
-        print("receiver position %s, %s" % (rx_lat, rx_lon), flush=True)
+        candidate_lat, candidate_lon = receiver.get("lat"), receiver.get("lon")
+        # This Dump1090 build returns 0,0 when homepos is not configured.
+        if (_is_number(candidate_lat) and _is_number(candidate_lon)
+                and -90 <= candidate_lat <= 90
+                and -180 <= candidate_lon <= 180
+                and not (candidate_lat == 0 and candidate_lon == 0)):
+            rx_lat, rx_lon = candidate_lat, candidate_lon
+            print("receiver position %s, %s" % (rx_lat, rx_lon), flush=True)
+        else:
+            print("receiver.json has no configured receiver position; set homepos "
+                  "before collecting range data", flush=True)
     except (urllib.error.URLError, OSError, ValueError) as exc:
-        print("could not read receiver.json (%s); relying on r_dst/r_dir" % exc,
-              flush=True)
+        print("could not read receiver.json (%s); range calculations need receiver "
+              "coordinates unless the saved state already has them" % exc, flush=True)
 
     env = Envelope.load_or_new(args.state, rx_lat, rx_lon, args.rx_alt_ft)
+    # Create the first state snapshot immediately so the viewer has a valid JSON
+    # document as soon as the collector starts, rather than waiting for save_every.
+    if not os.path.exists(args.state):
+        env.save(args.state)
     print("state %s: %d cells, %d samples"
           % (args.state, len(env.cells), env.samples), flush=True)
 
@@ -300,9 +357,30 @@ def cmd_collect(args):
 
     url = base + "/data/aircraft.json"
     last_save = time.time()
+    next_receiver_retry = 0.0
     backoff = 1.0
     records = 0
     deadline = time.time() + args.duration if args.duration else None
+
+    # Keep a visible status on the active console line between log messages.
+    # This reassures users the collector is running before its first periodic save.
+    status_message = (
+        "Collecting aircraft data; waiting for next save (every %ss)..."
+        % args.save_every
+    )
+
+    def show_status():
+        sys.stdout.write("\r" + status_message)
+        sys.stdout.flush()
+
+    def log_status(message):
+        # Replace the live status with the permanent log message instead of
+        # leaving a duplicate "waiting" line in the console history.
+        sys.stdout.write("\r" + message.ljust(len(status_message)) + "\n")
+        sys.stdout.flush()
+        show_status()
+
+    show_status()
 
     while not stopping["now"]:
         cycle_start = time.time()
@@ -310,12 +388,28 @@ def cmd_collect(args):
             snapshot = fetch_json(url)
             backoff = 1.0
         except (urllib.error.URLError, OSError, ValueError) as exc:
-            print("fetch failed: %s (retry in %.0fs)" % (exc, backoff), flush=True)
+            log_status("fetch failed: %s (retry in %.0fs)" % (exc, backoff))
             time.sleep(backoff)
             backoff = min(backoff * 2, 30.0)
             continue
 
         now = snapshot.get("now", time.time())
+
+        # If Dump1090 was still starting when the collector launched, retry its
+        # receiver endpoint until a real homepos becomes available.
+        if env.rx.get("lat") is None and time.time() >= next_receiver_retry:
+            next_receiver_retry = time.time() + 15.0
+            try:
+                receiver = fetch_json(base + "/data/receiver.json")
+                rx_lat, rx_lon = receiver.get("lat"), receiver.get("lon")
+                if (_is_number(rx_lat) and _is_number(rx_lon)
+                        and -90 <= rx_lat <= 90 and -180 <= rx_lon <= 180
+                        and not (rx_lat == 0 and rx_lon == 0)):
+                    env.rx["lat"], env.rx["lon"] = rx_lat, rx_lon
+                    log_status("receiver position %s, %s" % (rx_lat, rx_lon))
+            except (urllib.error.URLError, OSError, ValueError):
+                pass
+
         for ac in snapshot.get("aircraft", ()):
             accepted = accept(ac, now, last_fix, env.rx)
             if accepted is None:
@@ -333,8 +427,8 @@ def cmd_collect(args):
         if time.time() - last_save >= args.save_every:
             env.save(args.state)
             last_save = time.time()
-            print("saved: %d cells, %d samples, %d records set"
-                  % (len(env.cells), env.samples, records), flush=True)
+            log_status("saved: %d cells, %d samples, %d records set"
+                       % (len(env.cells), env.samples, records))
 
         if deadline and time.time() >= deadline:
             break
@@ -343,6 +437,9 @@ def cmd_collect(args):
         if elapsed < args.interval:
             time.sleep(args.interval - elapsed)
 
+    # Replace the active status with a final message before saving on shutdown.
+    sys.stdout.write("\r" + "Stopping and saving coverage...".ljust(len(status_message)) + "\n")
+    sys.stdout.flush()
     env.save(args.state)
     print("stopped: %d cells, %d samples" % (len(env.cells), env.samples), flush=True)
     return 0
