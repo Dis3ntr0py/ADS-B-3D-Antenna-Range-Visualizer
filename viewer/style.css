@@ -23,8 +23,8 @@ html, body {
   overflow: hidden;
 }
 
-/* The panel sits beside the view, not over it: a chart with axis labels hidden
-   under an overlay is worse than a slightly smaller chart. */
+/* On desktop the panel sits beside the view. On small screens it overlays
+   the view so the canvas keeps the full viewport width. */
 #stage { position: absolute; inset: 0 0 0 206px; }
 
 #scene, #slice { display: block; width: 100%; height: 100%; }
@@ -46,32 +46,110 @@ html, body {
   top: 0;
   left: 0;
   bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
   width: 206px;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 8px;
   background: var(--panel);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  transition: width 160ms ease;
+}
+
+#panelContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line-bright) var(--panel);
 }
 
-#panel::-webkit-scrollbar {
+#panelContent::-webkit-scrollbar {
   width: 6px;
 }
 
-#panel::-webkit-scrollbar-track {
+#panelContent::-webkit-scrollbar-track {
   background: var(--panel);
 }
 
-#panel::-webkit-scrollbar-thumb {
+#panelContent::-webkit-scrollbar-thumb {
   background: var(--line-bright);
   border: 1px solid var(--panel);
   border-radius: 999px;
 }
 
-#panel::-webkit-scrollbar-thumb:hover {
+#panelContent::-webkit-scrollbar-thumb:hover {
   background: var(--fg-faint);
+}
+
+.panel-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-head .back {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 2px;
+}
+
+button.panel-toggle {
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+body.panel-collapsed #stage {
+  inset: 0;
+}
+
+body.panel-collapsed #panel {
+  width: 40px;
+  height: 40px;
+  bottom: auto;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-bright);
+  border-radius: 8px;
+  transition: width 160ms ease, height 160ms ease;
+}
+
+body.panel-collapsed #panel .panel-head {
+  padding: 0;
+  border-bottom: 0;
+}
+
+body.panel-collapsed #panel .panel-head .back,
+body.panel-collapsed #panel #panelContent {
+  display: none;
+}
+
+body.panel-collapsed #panel .panel-toggle {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  border-radius: 5px;
+}
+
+@media (max-width: 640px) {
+  #stage {
+    inset: 0;
+  }
+
+  #panel {
+    width: min(206px, 86vw);
+    box-shadow: 3px 0 12px rgba(0, 0, 0, 0.45);
+  }
 }
 
 .group { padding: 6px 0; border-bottom: 1px solid var(--line); }
