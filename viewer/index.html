@@ -24,10 +24,14 @@
 </div>
 
 <div id="panel">
-  <div class="group">
-    <a id="backTo2d" class="back" href="../tar1090/">&larr; RETURN TO 2D</a>
+  <div class="group panel-head">
+    <a id="backTo2d" class="back" href="../tar1090/">&larr; 2D</a>
+    <button id="panelToggle" class="panel-toggle" type="button"
+      aria-controls="panel" aria-expanded="true" aria-label="Close controls"
+      title="Close controls">&#9776;</button>
   </div>
 
+  <div id="panelContent">
   <div class="group">
     <div class="row views">
       <button class="view on" data-view="orbit">ORBIT</button>
@@ -97,6 +101,7 @@
   <div class="group" id="pickGroup" hidden>
     <h2>selected cell</h2>
     <dl id="pick"></dl>
+  </div>
   </div>
 </div>
 
